@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-user-plus auth-icon"></i>
+            <h2>Teacher Registration</h2>
+            <p>Register to access the attendance system</p>
+        </div>
+        
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="username">
+                    <i class="fas fa-user"></i>
+                    Username
+                </label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="Choose a unique username">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">
+                    <i class="fas fa-envelope"></i>
+                    Email Address
+                </label>
+                <input type="email" id="email" name="email" required 
+                       placeholder="Enter your email address">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="Create a secure password">
+            </div>
+            
+            <input type="hidden" name="role" value="teacher">
+            
+            <button type="submit" class="btn btn-primary btn-full">
+                <i class="fas fa-user-plus"></i>
+                Register as Teacher
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Already have an account? 
+                <a href="{{ url_for('login') }}">Login here</a>
+            </p>
+            <div class="auth-info">
+                <div class="info-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Your account will require admin verification before access</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>Verification request will be sent to admin automatically</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

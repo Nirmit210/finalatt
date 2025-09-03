@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="daily-report-card">
+        <div class="card-header">
+            <h2>Daily Attendance Report</h2>
+            <p>Date: {{ date }}</p>
+        </div>
+        
+        <div class="attendance-summary">
+            <div class="summary-item">
+                <i class="fas fa-users"></i>
+                <div class="summary-content">
+                    <h3>Total Students</h3>
+                    <p>{{ total_students }}</p>
+                </div>
+            </div>
+            <div class="summary-item">
+                <i class="fas fa-check-circle"></i>
+                <div class="summary-content">
+                    <h3>Present Today</h3>
+                    <p>{{ present_students }}</p>
+                </div>
+            </div>
+            <div class="summary-item">
+                <i class="fas fa-times-circle"></i>
+                <div class="summary-content">
+                    <h3>Absent Today</h3>
+                    <p>{{ total_students - present_students }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="attendance-list">
+            <h3>Present Students</h3>
+            {% if attendance_records %}
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Student ID</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in attendance_records %}
+                    <tr>
+                        <td>{{ record[0] }}</td>
+                        <td>{{ record[1] }}</td>
+                        <td>{{ record[2] }}</td>
+                        <td>
+                            <span class="status status-{{ record[3] }}">
+                                {{ record[3] }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>No attendance records for today</h3>
+                <p>Start marking attendance to see the records here.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="report-actions">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> Print Report
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

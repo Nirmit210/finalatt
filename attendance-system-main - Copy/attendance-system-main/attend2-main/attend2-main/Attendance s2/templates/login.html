@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-sign-in-alt auth-icon"></i>
+            <h2>Login to Your Account</h2>
+            <p>Access the attendance management system</p>
+        </div>
+        
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="username">
+                    <i class="fas fa-user"></i>
+                    Username
+                </label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="Enter your username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="Enter your password">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-full">
+                <i class="fas fa-sign-in-alt"></i>
+                Login
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Don't have an account? 
+                <a href="{{ url_for('register') }}">Register as Teacher</a>
+            </p>
+            <div class="auth-info">
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>Teachers need admin verification after registration</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Contact your system administrator for admin access</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Enroll Student - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="enroll-container">
+    <div class="enroll-header">
+        <h1><i class="fas fa-user-plus"></i> Enroll New Student</h1>
+        <p>Add a new student to the attendance system with face recognition</p>
+    </div>
+
+    <div class="enroll-card">
+        <form method="POST" enctype="multipart/form-data" class="enroll-form">
+            <div class="form-section">
+                <h3><i class="fas fa-user"></i> Student Information</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">
+                            <i class="fas fa-user"></i>
+                            Full Name
+                        </label>
+                        <input type="text" id="name" name="name" required 
+                               placeholder="Enter student's full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="student_id">
+                            <i class="fas fa-id-card"></i>
+                            Student ID
+                        </label>
+                        <input type="text" id="student_id" name="student_id" required 
+                               placeholder="Enter unique student ID">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-envelope"></i>
+                        Email Address (Optional)
+                    </label>
+                    <input type="email" id="email" name="email" 
+                           placeholder="Enter student's email address">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-camera"></i> Face Recognition Setup</h3>
+                
+                <div class="photo-upload-section">
+                    <div class="upload-options">
+                        <div class="upload-option" id="file-upload-option">
+                            <div class="upload-icon">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <h4>Upload Photo</h4>
+                            <p>Select a clear photo of the student</p>
+                            <input type="file" id="photo" name="photo" accept="image/*" 
+                                   onchange="previewImage(this)">
+                            <label for="photo" class="btn btn-secondary">
+                                <i class="fas fa-folder-open"></i> Choose File
+                            </label>
+                        </div>
+                        
+                        <div class="upload-divider">
+                            <span>OR</span>
+                        </div>
+                        
+                        <div class="upload-option" id="camera-option">
+                            <div class="upload-icon">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                            <h4>Capture Photo</h4>
+                            <p>Use camera to take a photo</p>
+                            <button type="button" class="btn btn-secondary" onclick="startCamera()">
+                                <i class="fas fa-camera"></i> Start Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="photo-preview" id="photo-preview" style="display: none;">
+                        <h4>Photo Preview</h4>
+                        <div class="preview-container">
+                            <img id="preview-image" src="" alt="Student Photo">
+                            <div class="preview-actions">
+                                <button type="button" class="btn btn-secondary" onclick="clearPhoto()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-section" id="camera-section" style="display: none;">
+                        <div class="camera-container">
+                            <video id="camera-video" autoplay></video>
+                            <canvas id="camera-canvas" style="display: none;"></canvas>
+                        </div>
+                        <div class="camera-controls">
+                            <button type="button" class="btn btn-primary" onclick="capturePhoto()">
+                                <i class="fas fa-camera"></i> Capture
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="stopCamera()">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="photo-requirements">
+                    <h4><i class="fas fa-info-circle"></i> Photo Requirements</h4>
+                    <ul>
+                        <li>Clear, well-lit face photo</li>
+                        <li>Face should be clearly visible and centered</li>
+                        <li>No sunglasses or face coverings</li>
+                        <li>Supported formats: JPG, PNG, GIF</li>
+                        <li>Maximum file size: 5MB</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="fas fa-user-plus"></i>
+                    Enroll Student
+                </button>
+                <a href="{{ url_for('students') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Students
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let cameraStream = null;
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-image').src = e.target.result;
+            document.getElementById('photo-preview').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function clearPhoto() {
+    document.getElementById('photo').value = '';
+    document.getElementById('photo-preview').style.display = 'none';
+    document.getElementById('preview-image').src = '';
+}
+
+async function startCamera() {
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 } 
+        });
+        const video = document.getElementById('camera-video');
+        video.srcObject = cameraStream;
+        document.getElementById('camera-section').style.display = 'block';
+    } catch (err) {
+        alert('Error accessing camera: ' + err.message);
+    }
+}
+
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    document.getElementById('camera-section').style.display = 'none';
+}
+
+function capturePhoto() {
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+    
+    canvas.toBlob(function(blob) {
+        const file = new File([blob], 'captured-photo.jpg', { type: 'image/jpeg' });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        document.getElementById('photo').files = dataTransfer.files;
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-image').src = e.target.result;
+            document.getElementById('photo-preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+        
+        stopCamera();
+    }, 'image/jpeg', 0.8);
+}
+
+// Clean up camera on page unload
+window.addEventListener('beforeunload', function() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+{% endblock %}

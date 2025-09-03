@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="attendance-container">
+    <div class="attendance-header">
+        <h1><i class="fas fa-camera"></i> Mark Attendance</h1>
+        <p>Use face recognition to mark student attendance</p>
+    </div>
+
+    <div class="attendance-card">
+        <div class="camera-section">
+            <div class="camera-container hover-lift">
+                <video id="video" autoplay></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+                <div class="camera-overlay">
+                    <div class="face-frame breathing"></div>
+                    <div class="face-scan-overlay" id="face-scan-overlay" style="display: none;"></div>
+                    <div class="camera-instructions">
+                        <p class="neon-glow">Position face within the frame</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="camera-controls">
+                <button id="start-camera" class="btn btn-primary btn-glow hover-lift" onclick="startCamera(); createRippleEffect(event)">
+                    <i class="fas fa-camera"></i> Start Camera
+                </button>
+                <button id="capture-btn" class="btn btn-success btn-glow hover-lift" onclick="captureAndRecognize(); createRippleEffect(event)" style="display: none;">
+                    <i class="fas fa-user-check"></i> Mark Attendance
+                </button>
+                <button id="stop-camera" class="btn btn-secondary hover-lift" onclick="stopCamera(); createRippleEffect(event)" style="display: none;">
+                    <i class="fas fa-stop"></i> Stop Camera
+                </button>
+                
+                <!-- Reset buttons on the right side -->
+                <div class="reset-buttons-group">
+                    <button class="btn btn-info btn-sm hover-lift" onclick="resetAllAttendance(); createRippleEffect(event)">
+                        <i class="fas fa-refresh"></i> Reset Today's Attendance
+                    </button>
+                    <button class="btn btn-warning btn-sm hover-lift" onclick="showResetStudentModal(); createRippleEffect(event)">
+                        <i class="fas fa-user-times"></i> Reset Student Attendance
+                    </button>
+                </div>
+            </div>
+            
+            <div class="recognition-status" id="recognition-status" style="display: none;">
+                <div class="status-content">
+                    <div class="spinner"></div>
+                    <p>Recognizing face...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="attendance-info">
+            <div class="info-section">
+                <h3><i class="fas fa-info-circle"></i> Instructions</h3>
+                <ol>
+                    <li>Click "Start Camera" to begin</li>
+                    <li>Position the student's face within the frame</li>
+                    <li>Ensure good lighting and clear visibility</li>
+                    <li>Click "Mark Attendance" to recognize and record</li>
+                </ol>
+            </div>
+            
+            <div class="info-section">
+                <h3><i class="fas fa-clock"></i> Session Info</h3>
+                <div class="session-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Current Time:</span>
+                        <span class="stat-value" id="current-time"></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Date:</span>
+                        <span class="stat-value" id="current-date"></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Marked Today:</span>
+                        <span class="stat-value" id="attendance-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="recent-attendance" id="recent-attendance" style="display: none;">
+        <h3><i class="fas fa-history"></i> Recent Attendance</h3>
+        <div class="attendance-list" id="attendance-list">
+            <!-- Recent attendance will be populated here -->
+        </div>
+    </div>
+</div>
+
+<div class="result-modal" id="result-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title"></h3>
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="result-icon" id="result-icon"></div>
+            <p id="result-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeModal()">Continue</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Student Modal -->
+<div class="modal" id="reset-student-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-times"></i> Reset Student Attendance</h3>
+            <button class="modal-close" onclick="closeResetStudentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Enter the student's name to reset their attendance for today:</p>
+            <div class="form-group">
+                <label for="student-name-input">
+                    <i class="fas fa-user"></i>
+                    Student Name
+                </label>
+                <input type="text" id="student-name-input" placeholder="Enter student name..." autocomplete="off">
+            </div>
+            <p class="text-muted" style="font-size: 0.9rem; margin-top: 0.5rem;">
+                <i class="fas fa-info-circle"></i>
+                This will allow you to mark attendance again for this student today.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeResetStudentModal()">Cancel</button>
+            <button class="btn btn-warning" onclick="resetStudentAttendance()">
+                <i class="fas fa-user-times"></i> Reset Student
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let stream = null;
+let attendanceCount = 0;
+
+function updateDateTime() {
+    const now = new Date();
+    document.getElementById('current-time').textContent = now.toLocaleTimeString();
+    document.getElementById('current-date').textContent = now.toLocaleDateString();
+}
+
+async function startCamera() {
+    try {
+        // Show loading overlay
+        const overlay = createLoadingOverlay('Initializing camera...');
+        
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 640 }, 
+                height: { ideal: 480 },
+                facingMode: 'user'
+            } 
+        });
+        
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+        
+        // Start face scanning animation
+        const cameraContainer = document.querySelector('.camera-container');
+        startFaceRecognitionAnimation(cameraContainer);
+        
+        document.getElementById('start-camera').style.display = 'none';
+        document.getElementById('capture-btn').style.display = 'inline-block';
+        document.getElementById('stop-camera').style.display = 'inline-block';
+        
+        // Remove loading overlay
+        removeLoadingOverlay();
+        
+        // Show success notification
+        createFloatingNotification('Camera started successfully!', 'success');
+        
+    } catch (err) {
+        removeLoadingOverlay();
+        showResult('error', 'Camera Error', 'Unable to access camera: ' + err.message);
+        createFloatingNotification('Camera access failed', 'error');
+    }
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    
+    // Stop face scanning animation
+    const cameraContainer = document.querySelector('.camera-container');
+    stopFaceRecognitionAnimation(cameraContainer);
+    
+    document.getElementById('start-camera').style.display = 'inline-block';
+    document.getElementById('capture-btn').style.display = 'none';
+    document.getElementById('stop-camera').style.display = 'none';
+    
+    createFloatingNotification('Camera stopped', 'info');
+}
+
+    async function captureAndRecognize() {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        
+        // Show recognition status
+        document.getElementById('recognition-status').style.display = 'block';
+        document.getElementById('capture-btn').disabled = true;
+        
+        try {
+            // Check if video stream is active
+            if (!video.srcObject || !video.srcObject.active) {
+                throw new Error('Camera stream is not active. Please restart the camera.');
+            }
+            
+            // Wait for video metadata to load
+            if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+            }
+            
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            
+            // Draw current video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert canvas to base64 image data
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Verify image data
+            if (!imageData || !imageData.startsWith('data:image/jpeg;base64,')) {
+                throw new Error('Invalid image data format');
+            }
+            
+            // Send the image data to the server
+            const response = await fetch('/mark_attendance', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image_data: imageData
+                })
+            });
+            
+            // Handle non-200 responses
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || `Server error: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                attendanceCount++;
+                document.getElementById('attendance-count').textContent = attendanceCount;
+                
+                // Create particle explosion effect
+                const captureBtn = document.getElementById('capture-btn');
+                const rect = captureBtn.getBoundingClientRect();
+                createParticleExplosion(rect.left + rect.width/2, rect.top + rect.height/2);
+                
+                // Show success animation
+                showSuccessAnimation(document.querySelector('.camera-container'));
+                
+                showResult('success', 'Attendance Marked!', result.message);
+                addToRecentAttendance(result.message);
+                createFloatingNotification('Attendance marked successfully!', 'success');
+            } else {
+                showResult('error', 'Recognition Failed', result.message);
+                createFloatingNotification('Face recognition failed', 'error');
+            }
+        } catch (error) {
+            console.error('Attendance error:', error);
+            showResult('error', 'System Error', 'Failed to process attendance: ' + error.message);
+        } finally {
+            document.getElementById('recognition-status').style.display = 'none';
+            document.getElementById('capture-btn').disabled = false;
+        }
+    }
+
+function showResult(type, title, message) {
+    const modal = document.getElementById('result-modal');
+    const titleEl = document.getElementById('modal-title');
+    const iconEl = document.getElementById('result-icon');
+    const messageEl = document.getElementById('result-message');
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    if (type === 'success') {
+        iconEl.innerHTML = '<i class="fas fa-check-circle success"></i>';
+        modal.className = 'result-modal success';
+    } else {
+        iconEl.innerHTML = '<i class="fas fa-exclamation-triangle error"></i>';
+        modal.className = 'result-modal error';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('result-modal').style.display = 'none';
+}
+
+function addToRecentAttendance(message) {
+    const recentSection = document.getElementById('recent-attendance');
+    const attendanceList = document.getElementById('attendance-list');
+    
+    const attendanceItem = document.createElement('div');
+    attendanceItem.className = 'attendance-item recent';
+    attendanceItem.innerHTML = `
+        <div class="attendance-info">
+            <i class="fas fa-check-circle"></i>
+            <span>${message}</span>
+        </div>
+        <div class="attendance-time">
+            ${new Date().toLocaleTimeString()}
+        </div>
+    `;
+    
+    attendanceList.insertBefore(attendanceItem, attendanceList.firstChild);
+    recentSection.style.display = 'block';
+    
+    // Keep only last 5 items
+    while (attendanceList.children.length > 5) {
+        attendanceList.removeChild(attendanceList.lastChild);
+    }
+}
+
+// Update time every second
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
+// Clean up camera on page unload
+window.addEventListener('beforeunload', function() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+});
+
+// Reset all attendance for today
+async function resetAllAttendance() {
+    if (!confirm('Are you sure you want to reset ALL attendance for today? This will allow everyone to mark attendance again.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/reset_attendance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'all'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showResult('success', 'Attendance Reset', result.message);
+            createFloatingNotification('Attendance reset successfully!', 'success');
+            // Refresh attendance count
+            attendanceCount = 0;
+            document.getElementById('attendance-count').textContent = '0';
+            // Clear recent attendance list
+            const attendanceList = document.getElementById('attendance-list');
+            if (attendanceList) {
+                attendanceList.innerHTML = '';
+            }
+            const recentSection = document.getElementById('recent-attendance');
+            if (recentSection) {
+                recentSection.style.display = 'none';
+            }
+        } else {
+            showResult('error', 'Reset Failed', result.message);
+            createFloatingNotification('Failed to reset attendance', 'error');
+        }
+    } catch (error) {
+        showResult('error', 'Error', 'Failed to reset attendance: ' + error.message);
+        createFloatingNotification('Reset failed', 'error');
+    }
+}
+
+// Show reset student modal
+function showResetStudentModal() {
+    document.getElementById('reset-student-modal').style.display = 'flex';
+    document.getElementById('student-name-input').focus();
+}
+
+// Close reset student modal
+function closeResetStudentModal() {
+    document.getElementById('reset-student-modal').style.display = 'none';
+    document.getElementById('student-name-input').value = '';
+}
+
+// Reset specific student attendance
+async function resetStudentAttendance() {
+    const studentName = document.getElementById('student-name-input').value.trim();
+    
+    if (!studentName) {
+        alert('Please enter a student name');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to reset attendance for "${studentName}" today?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/reset_attendance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'student',
+                student_name: studentName
+            })
+        });
+        
+        const result = await response.json();
+        
+        closeResetStudentModal();
+        
+        if (result.success) {
+            showResult('success', 'Student Reset', result.message);
+            createFloatingNotification('Student attendance reset!', 'success');
+        } else {
+            showResult('error', 'Reset Failed', result.message);
+            createFloatingNotification('Failed to reset student', 'error');
+        }
+    } catch (error) {
+        closeResetStudentModal();
+        showResult('error', 'Error', 'Failed to reset student attendance: ' + error.message);
+        createFloatingNotification('Reset failed', 'error');
+    }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+        closeResetStudentModal();
+    }
+});
+
+// Handle enter key in student name input
+document.addEventListener('DOMContentLoaded', function() {
+    const studentInput = document.getElementById('student-name-input');
+    if (studentInput) {
+        studentInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                resetStudentAttendance();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

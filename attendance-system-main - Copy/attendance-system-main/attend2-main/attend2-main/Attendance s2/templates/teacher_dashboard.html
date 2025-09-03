@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-chalkboard-teacher"></i> Teacher Dashboard</h1>
+        <p>Welcome back, {{ session.username }}! Track and manage attendance.</p>
+    </div>
+
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="total-students">{{ total_students }}</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="present-today">{{ today_attendance|length }}</h3>
+                <p>Present Today</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="attendance-rate">{% if total_students > 0 %}{{ "%.1f"|format((today_attendance|length / total_students) * 100) }}%{% else %}0%{% endif %}</h3>
+                <p>Attendance Rate</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="current-time"></h3>
+                <p>Current Time</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="fas fa-list-check"></i> Today's Attendance</h3>
+                <a href="{{ url_for('mark_attendance') }}" class="mark-attendance-btn">
+                    <i class="fas fa-camera"></i> Mark Attendance
+                </a>
+            </div>
+            <div class="card-content">
+                <div id="attendance-container">
+                {% if today_attendance %}
+                    <div class="attendance-list" id="attendance-list">
+                        {% for record in today_attendance %}
+                            <div class="attendance-item">
+                                <div class="student-info">
+                                    <div class="student-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="student-details">
+                                        <h4>{{ record[0] }}</h4>
+                                        <p>ID: {{ record[1] }}</p>
+                                    </div>
+                                </div>
+                                <div class="attendance-meta">
+                                    <span class="time">
+                                        <i class="fas fa-clock"></i>
+                                        {{ record[2] }}
+                                    </span>
+                                    <span class="status status-{{ record[3] }}">
+                                        <i class="fas fa-check-circle"></i>
+                                        {{ record[3].title() }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" id="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>No attendance recorded today</p>
+                    </div>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="fas fa-tools"></i> Quick Actions</h3>
+            </div>
+            <div class="card-content">
+                <div class="quick-actions">
+                    <a href="{{ url_for('mark_attendance') }}" class="action-btn">
+                        <i class="fas fa-camera"></i>
+                        <span>Mark Attendance</span>
+                    </a>
+                    <a href="{{ url_for('students') }}" class="action-btn">
+                        <i class="fas fa-users"></i>
+                        <span>View Students</span>
+                    </a>
+                    <a href="{{ url_for('daily_attendance_report') }}" class="action-btn">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Generate Daily Report</span>
+                    </a>
+                    <button class="action-btn" onclick="refreshAttendance()">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh Data</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styling for the Mark Attendance button */
+.mark-attendance-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary-600);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+    position: relative;
+    overflow: hidden;
+    min-width: 140px;
+}
+
+.mark-attendance-btn:hover {
+    background: var(--primary-700);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.mark-attendance-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
+.mark-attendance-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.mark-attendance-btn:hover::after {
+    animation: ripple 0.6s ease-out;
+}
+
+/* Animation for action buttons */
+.action-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.action-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.action-btn:hover::after {
+    animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(20, 20);
+        opacity: 0;
+    }
+}
+
+/* Animation styles for data refresh */
+.highlight-update {
+    animation: highlight-pulse 1s ease;
+}
+
+@keyframes highlight-pulse {
+    0% {
+        color: var(--text-color);
+    }
+    50% {
+        color: var(--primary-600);
+    }
+    100% {
+        color: var(--text-color);
+    }
+}
+
+#attendance-container {
+    transition: opacity 0.3s ease;
+}
+
+.fade-out {
+    opacity: 0;
+}
+
+.fade-in {
+    opacity: 1;
+    animation: fade-in 0.5s ease;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.refreshing {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.refresh-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.refresh-toast.error {
+    background-color: #ef4444;
+}
+
+.refresh-toast.warning {
+    background-color: #f59e0b;
+}
+
+.refresh-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.refresh-toast i {
+    font-size: 1.2rem;
+}
+
+.refresh-toast small {
+    display: block;
+    margin-top: 4px;
+    opacity: 0.9;
+    font-size: 0.85rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mark-attendance-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        min-width: 120px;
+    }
+    
+    .card-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .card-header h3 {
+        font-size: 1rem;
+    }
+    
+    .nav-container {
+        padding: 0 1rem;
+    }
+    
+    .nav-menu {
+        gap: 0.5rem;
+    }
+    
+    .nav-link {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.9rem;
+    }
+    
+    .nav-brand span {
+        font-size: 1.3rem;
+    }
+    
+    .refresh-toast {
+        left: 20px;
+        right: 20px;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 600px) {
+    .nav-menu {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .nav-container {
+        flex-direction: column;
+        padding: 0.5rem;
+    }
+    
+    .nav-brand {
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mark-attendance-btn {
+        min-width: auto;
+        padding: 0.35rem 0.7rem;
+    }
+    
+    .nav-link {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.85rem;
+    }
+}
+</style>
+
+<script>
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    document.getElementById('current-time').textContent = timeString;
+}
+
+// Animation for number changes
+function animateValue(element, start, end, duration) {
+    if (start === end) return;
+    
+    const range = end - start;
+    const increment = end > start ? 1 : -1;
+    const stepTime = Math.abs(Math.floor(duration / range));
+    
+    let current = start;
+    const timer = setInterval(function() {
+        current += increment;
+        element.textContent = current + (element.id === 'attendance-rate' ? '%' : '');
+        
+        if (current === end) {
+            clearInterval(timer);
+            
+            // Add a brief highlight effect
+            element.classList.add('highlight-update');
+            setTimeout(() => {
+                element.classList.remove('highlight-update');
+            }, 1000);
+        }
+    }, stepTime);
+}
+
+// Function to refresh attendance data dynamically
+function refreshAttendance() {
+    // Show loading spinner on the refresh button
+    const refreshBtn = document.querySelector('.action-btn[onclick="refreshAttendance()"]');
+    const originalContent = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Refreshing...</span>';
+    refreshBtn.disabled = true;
+    refreshBtn.classList.add('refreshing');
+    
+    // Add timestamp to URL to prevent caching
+    const timestamp = new Date().getTime();
+    const url = `/api/teacher/attendance-data?t=${timestamp}`;
+    
+    // Fetch updated data from the API with cache-busting
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        },
+        cache: 'no-store'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received fresh data:', data);
+            
+            // Verify we have the timestamp to confirm fresh data
+            if (!data.timestamp) {
+                console.warn('No timestamp in response, data might be cached');
+            } else {
+                console.log('Data timestamp:', data.timestamp);
+            }
+            
+            // Update statistics with direct values first (no animation yet)
+            const totalStudentsEl = document.getElementById('total-students');
+            const presentTodayEl = document.getElementById('present-today');
+            const attendanceRateEl = document.getElementById('attendance-rate');
+            
+            // Store current values for animation
+            const currentTotalStudents = parseInt(totalStudentsEl.textContent);
+            const currentPresentToday = parseInt(presentTodayEl.textContent);
+            const currentAttendanceRate = parseFloat(attendanceRateEl.textContent);
+            
+            // Log the changes for verification
+            console.log('Updating stats:', {
+                totalStudents: { from: currentTotalStudents, to: data.total_students },
+                presentToday: { from: currentPresentToday, to: data.present_today },
+                attendanceRate: { from: currentAttendanceRate, to: data.attendance_rate }
+            });
+            
+            // IMPORTANT: Set the values directly first to ensure they're updated
+            totalStudentsEl.textContent = data.total_students;
+            presentTodayEl.textContent = data.present_today;
+            attendanceRateEl.textContent = data.attendance_rate + '%';
+            
+            // Then apply animations for visual effect
+            totalStudentsEl.classList.add('highlight-update');
+            presentTodayEl.classList.add('highlight-update');
+            attendanceRateEl.classList.add('highlight-update');
+            
+            setTimeout(() => {
+                totalStudentsEl.classList.remove('highlight-update');
+                presentTodayEl.classList.remove('highlight-update');
+                attendanceRateEl.classList.remove('highlight-update');
+            }, 1500);
+            
+            // Update attendance list
+            const attendanceContainer = document.getElementById('attendance-container');
+            
+            if (data.attendance_records.length > 0) {
+                // Log the number of records for verification
+                console.log(`Updating attendance list with ${data.attendance_records.length} records`);
+                
+                // Create attendance list HTML
+                let attendanceListHTML = '<div class="attendance-list" id="attendance-list">';
+                
+                data.attendance_records.forEach(record => {
+                    attendanceListHTML += `
+                        <div class="attendance-item">
+                            <div class="student-info">
+                                <div class="student-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="student-details">
+                                    <h4>${record.name}</h4>
+                                    <p>ID: ${record.student_id}</p>
+                                </div>
+                            </div>
+                            <div class="attendance-meta">
+                                <span class="time">
+                                    <i class="fas fa-clock"></i>
+                                    ${record.time}
+                                </span>
+                                <span class="status status-${record.status}">
+                                    <i class="fas fa-check-circle"></i>
+                                    ${record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                attendanceListHTML += '</div>';
+                
+                // Apply fade-out effect before updating content
+                attendanceContainer.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    attendanceContainer.innerHTML = attendanceListHTML;
+                    // Apply fade-in effect after updating content
+                    attendanceContainer.classList.remove('fade-out');
+                    attendanceContainer.classList.add('fade-in');
+                    
+                    setTimeout(() => {
+                        attendanceContainer.classList.remove('fade-in');
+                    }, 500);
+                }, 300);
+            } else {
+                // Show empty state if no attendance records
+                console.log('No attendance records found, showing empty state');
+                attendanceContainer.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    attendanceContainer.innerHTML = `
+                        <div class="empty-state" id="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <p>No attendance recorded today</p>
+                        </div>
+                    `;
+                    attendanceContainer.classList.remove('fade-out');
+                    attendanceContainer.classList.add('fade-in');
+                    
+                    setTimeout(() => {
+                        attendanceContainer.classList.remove('fade-in');
+                    }, 500);
+                }, 300);
+            }
+            
+            // Verify data has been updated before showing success message
+            const updatedPresentToday = document.getElementById('present-today').textContent;
+            const updatedAttendanceRate = document.getElementById('attendance-rate').textContent;
+            
+            console.log('Verification after update:', {
+                presentToday: updatedPresentToday,
+                attendanceRate: updatedAttendanceRate,
+                expectedPresentToday: data.present_today,
+                expectedAttendanceRate: data.attendance_rate + '%'
+            });
+            
+            // Reset refresh button and show success message only after data is processed
+            setTimeout(() => {
+                refreshBtn.innerHTML = originalContent;
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove('refreshing');
+                
+                // Only show success if data was actually updated
+                if (parseInt(updatedPresentToday) === data.present_today) {
+                    // Show success message with timestamp and data values
+                    const successToast = document.createElement('div');
+                    successToast.className = 'refresh-toast';
+                    successToast.innerHTML = `
+                        <i class="fas fa-check-circle"></i> 
+                        Data refreshed successfully at ${new Date().toLocaleTimeString()}<br>
+                        <small>Present: ${data.present_today}, Rate: ${data.attendance_rate}%</small>
+                    `;
+                    document.body.appendChild(successToast);
+                    
+                    setTimeout(() => {
+                        successToast.classList.add('show');
+                        
+                        setTimeout(() => {
+                            successToast.classList.remove('show');
+                            setTimeout(() => {
+                                document.body.removeChild(successToast);
+                            }, 300);
+                        }, 3000);
+                    }, 100);
+                } else {
+                    // Show warning if data wasn't updated properly
+                    console.error('Data not updated correctly after refresh');
+                    const warningToast = document.createElement('div');
+                    warningToast.className = 'refresh-toast warning';
+                    warningToast.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        Data may not have refreshed properly. Please try again.
+                    `;
+                    document.body.appendChild(warningToast);
+                    
+                    setTimeout(() => {
+                        warningToast.classList.add('show');
+                        
+                        setTimeout(() => {
+                            warningToast.classList.remove('show');
+                            setTimeout(() => {
+                                document.body.removeChild(warningToast);
+                            }, 300);
+                        }, 3000);
+                    }, 100);
+                }
+            }, 800);
+        })
+        .catch(error => {
+            console.error('Error fetching attendance data:', error);
+            
+            // Reset refresh button and show error
+            refreshBtn.innerHTML = originalContent;
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('refreshing');
+            
+            // Show detailed error message
+            const errorToast = document.createElement('div');
+            errorToast.className = 'refresh-toast error';
+            errorToast.innerHTML = `<i class="fas fa-exclamation-circle"></i> Failed to refresh data: ${error.message}`;
+            document.body.appendChild(errorToast);
+            
+            setTimeout(() => {
+                errorToast.classList.add('show');
+                
+                setTimeout(() => {
+                    errorToast.classList.remove('show');
+                    setTimeout(() => {
+                        document.body.removeChild(errorToast);
+                    }, 300);
+                }, 3000);
+            }, 100);
+        });
+}
+
+// Update time every second
+setInterval(updateTime, 1000);
+updateTime();
+</script>
+{% endblock %}

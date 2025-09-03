@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Students - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="students-container">
+    <div class="students-header">
+        <h1><i class="fas fa-users"></i> Students</h1>
+        <p>Manage enrolled students in the system</p>
+        <a href="{{ url_for('enroll_student') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> Enroll New Student
+        </a>
+    </div>
+
+    <div class="students-card">
+        {% if students %}
+            <div class="students-stats">
+                <div class="stat-item">
+                    <i class="fas fa-users"></i>
+                    <span>Total Students: {{ students|length }}</span>
+                </div>
+            </div>
+            
+            <div class="students-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-user"></i> Name</th>
+                            <th><i class="fas fa-id-card"></i> Student ID</th>
+                            <th><i class="fas fa-envelope"></i> Email</th>
+                            <th><i class="fas fa-calendar"></i> Enrolled</th>
+                            <th><i class="fas fa-cog"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                            <tr>
+                                <td>
+                                    <div class="student-name">
+                                        <div class="student-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <span>{{ student[1] }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="student-id">{{ student[2] }}</span>
+                                </td>
+                                <td>
+                                    {% if student[3] %}
+                                        <span class="student-email">{{ student[3] }}</span>
+                                    {% else %}
+                                        <span class="no-email">No email</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="enrollment-date">{{ student[4][:10] }}</span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-info" data-student-id="{{ student[0] }}" onclick="viewStudent(this.getAttribute('data-student-id'))">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if session.role == 'admin' %}
+                                            <button class="btn btn-sm btn-danger" data-student-id="{{ student[0] }}" data-student-name="{{ student[1] }}" onclick="deleteStudent(this.getAttribute('data-student-id'), this.getAttribute('data-student-name'))">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h3>No Students Enrolled</h3>
+                <p>Get started by enrolling your first student using the "Enroll New Student" button above</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Student Details Modal -->
+<div class="modal" id="student-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user"></i> Student Details</h3>
+            <button class="modal-close" onclick="closeStudentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="student-details">
+            <!-- Student details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+function viewStudent(studentId) {
+    var modal = document.getElementById('student-modal');
+    var detailsDiv = document.getElementById('student-details');
+    
+    detailsDiv.innerHTML = 
+        '<div class="student-profile">' +
+            '<div class="profile-avatar">' +
+                '<i class="fas fa-user"></i>' +
+            '</div>' +
+            '<div class="profile-info">' +
+                '<h4>Student Information</h4>' +
+                '<p><strong>Name:</strong> Loading...</p>' +
+                '<p><strong>ID:</strong> Loading...</p>' +
+                '<p><strong>Email:</strong> Loading...</p>' +
+                '<p><strong>Enrolled:</strong> Loading...</p>' +
+            '</div>' +
+        '</div>' +
+        '<div class="student-stats" style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">' +
+            '<div class="stat-item" style="background:#f8fafc;border:1px solid var(--border-color);border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">--</div><div class="stat-label">Total Records</div></div>' +
+            '<div class="stat-item" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">--</div><div class="stat-label">Present</div></div>' +
+            '<div class="stat-item" style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">--</div><div class="stat-label">Absent</div></div>' +
+            '<div class="stat-item" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">--</div><div class="stat-label">Late</div></div>' +
+        '</div>' +
+        '<div class="student-last" style="margin-top: 1rem; background:#f8fafc;border:1px solid var(--border-color);border-radius:10px;padding:0.75rem 1rem;">' +
+            '<div style="display:flex;align-items:center;gap:0.5rem;">' +
+                '<i class="fas fa-history"></i>' +
+                '<strong>Last attendance:</strong>' +
+                '<span>Loading...</span>' +
+            '</div>' +
+        '</div>';
+    
+    modal.style.display = 'flex';
+
+    fetch('/api/students/' + studentId)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (!data.success) {
+                detailsDiv.innerHTML = '<p style="color:#b91c1c;">' + (data.message || 'Failed to load student details') + '</p>';
+                return;
+            }
+
+            var s = data.student;
+            var stats = data.stats || {};
+            var enrolledDate = (s.createdAt || '').toString().substring(0,10);
+            var emailText = s.email && s.email.trim() ? s.email : 'No email';
+
+            var last = stats.last;
+            var lastText = last ? (last.status.toUpperCase() + ' on ' + last.date + ' at ' + last.time) : 'No records yet';
+
+            detailsDiv.innerHTML = 
+                '<div class="student-profile" style="display:flex; gap:1rem; align-items:center;">' +
+                    '<div class="profile-avatar" style="width:56px;height:56px;border-radius:50%;background:#eef2ff;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:1.25rem;">' +
+                        '<i class="fas fa-user"></i>' +
+                    '</div>' +
+                    '<div class="profile-info">' +
+                        '<h4 style="margin:0 0 0.5rem 0;">' + s.name + '</h4>' +
+                        '<p style="margin:0.15rem 0;"><strong>ID:</strong> ' + s.studentId + '</p>' +
+                        '<p style="margin:0.15rem 0;"><strong>Email:</strong> ' + emailText + '</p>' +
+                        '<p style="margin:0.15rem 0;"><strong>Enrolled:</strong> ' + enrolledDate + '</p>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="student-stats" style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">' +
+                    '<div class="stat-item" style="background:#f8fafc;border:1px solid var(--border-color);border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">' + (stats.total || 0) + '</div><div class="stat-label">Total Records</div></div>' +
+                    '<div class="stat-item" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">' + (stats.present || 0) + '</div><div class="stat-label">Present</div></div>' +
+                    '<div class="stat-item" style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">' + (stats.absent || 0) + '</div><div class="stat-label">Absent</div></div>' +
+                    '<div class="stat-item" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:0.75rem 1rem;"><div class="stat-number" style="font-weight:700;">' + (stats.late || 0) + '</div><div class="stat-label">Late</div></div>' +
+                '</div>' +
+                '<div class="student-last" style="margin-top: 1rem; background:#f8fafc;border:1px solid var(--border-color);border-radius:10px;padding:0.75rem 1rem;">' +
+                    '<div style="display:flex;align-items:center;gap:0.5rem;">' +
+                        '<i class="fas fa-history"></i>' +
+                        '<strong>Last attendance:</strong>' +
+                        '<span>' + lastText + '</span>' +
+                    '</div>' +
+                '</div>';
+        })
+        .catch(function(err) {
+            detailsDiv.innerHTML = '<p style="color:#b91c1c;">Failed to load student details: ' + err.message + '</p>';
+        });
+}
+
+function closeStudentModal() {
+    document.getElementById('student-modal').style.display = 'none';
+}
+
+function deleteStudent(studentId, studentName) {
+    if (confirm('Are you sure you want to delete student "' + studentName + '"? This action cannot be undone.')) {
+        fetch('/delete_student/' + studentId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting student: ' + data.message);
+            }
+        })
+        .catch(function(error) {
+            alert('Error deleting student: ' + error.message);
+        });
+    }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeStudentModal();
+    }
+});
+</script>
+{% endblock %}

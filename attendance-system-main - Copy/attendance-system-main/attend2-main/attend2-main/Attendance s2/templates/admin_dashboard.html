@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+        <p>Welcome back, {{ session.username }}! Manage your attendance system.</p>
+    </div>
+
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_students }}</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ verified_teachers }}</h3>
+                <p>Verified Teachers</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ today_attendance }}</h3>
+                <p>Today's Attendance</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ pending_requests|length }}</h3>
+                <p>Pending Verifications</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="fas fa-user-check"></i> Pending Teacher Verifications</h3>
+            </div>
+            <div class="card-content">
+                {% if pending_requests %}
+                    <div class="verification-list">
+                        {% for request in pending_requests %}
+                            <div class="verification-item">
+                                <div class="verification-info">
+                                    <h4>{{ request[1] }}</h4>
+                                    <p><i class="fas fa-envelope"></i> {{ request[2] }}</p>
+                                    <small><i class="fas fa-clock"></i> {{ request[3] }}</small>
+                                </div>
+                                <div class="verification-actions">
+                                    <button class="btn btn-success btn-sm" data-user-id="{{ request[0] }}" onclick="approveTeacher(this.getAttribute('data-user-id'))">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" data-user-id="{{ request[0] }}" onclick="rejectTeacher(this.getAttribute('data-user-id'))">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <p>No pending verification requests</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="fas fa-tools"></i> Quick Actions</h3>
+            </div>
+            <div class="card-content">
+                <div class="quick-actions">
+                    <a href="{{ url_for('enroll_student') }}" class="action-btn">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Enroll New Student</span>
+                    </a>
+                    <a href="{{ url_for('students') }}" class="action-btn">
+                        <i class="fas fa-users"></i>
+                        <span>Manage Students</span>
+                    </a>
+                    <a href="{{ url_for('mark_attendance') }}" class="action-btn">
+                        <i class="fas fa-camera"></i>
+                        <span>Mark Attendance</span>
+                    </a>
+                    <a href="{{ url_for('daily_attendance_report') }}" class="action-btn">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Generate Daily Report</span>
+                    </a>
+                    <a href="{{ url_for('teachers') }}" class="action-btn">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>Manage Teachers</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function approveTeacher(requestId) {
+    if (confirm('Are you sure you want to approve this teacher?')) {
+        fetch(`/admin/approve/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error approving teacher: ' + data.message);
+            }
+        });
+    }
+}
+
+function rejectTeacher(requestId) {
+    if (confirm('Are you sure you want to reject this teacher?')) {
+        fetch(`/admin/reject/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error rejecting teacher: ' + data.message);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

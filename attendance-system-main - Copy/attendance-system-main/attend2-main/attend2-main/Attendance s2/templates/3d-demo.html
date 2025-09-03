@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Background Demo - Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .demo-container {
+            position: relative;
+            z-index: 10;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .demo-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        
+        .demo-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+        }
+        
+        .background-selector {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+        
+        .bg-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .bg-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bg-btn.active {
+            background: rgba(59, 130, 246, 0.5);
+            border-color: #3b82f6;
+        }
+        
+        .demo-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .info-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            max-width: 300px;
+        }
+        
+        .info-panel h3 {
+            margin: 0 0 0.5rem 0;
+            color: #3b82f6;
+        }
+        
+        .info-panel p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(59, 130, 246, 0.8);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-btn:hover {
+            background: rgba(59, 130, 246, 1);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
+    
+    <!-- Canvas elements for different backgrounds -->
+    <canvas id="particles-canvas" class="demo-canvas" style="display: block;"></canvas>
+    <canvas id="cubes-canvas" class="demo-canvas" style="display: none;"></canvas>
+    <canvas id="waves-canvas" class="demo-canvas" style="display: none;"></canvas>
+    <canvas id="geometry-canvas" class="demo-canvas" style="display: none;"></canvas>
+    <canvas id="dna-canvas" class="demo-canvas" style="display: none;"></canvas>
+    <canvas id="spheres-canvas" class="demo-canvas" style="display: none;"></canvas>
+    
+    <div class="demo-container">
+        <h1 class="demo-title">3D Background Gallery</h1>
+        <p class="demo-subtitle">Choose from amazing 3D animated backgrounds for your attendance system</p>
+        
+        <div class="background-selector">
+            <button class="bg-btn active" onclick="switchBackground('particles')">Particle Network</button>
+            <button class="bg-btn" onclick="switchBackground('cubes')">Floating Cubes</button>
+            <button class="bg-btn" onclick="switchBackground('waves')">3D Waves</button>
+            <button class="bg-btn" onclick="switchBackground('geometry')">Geometric Shapes</button>
+            <button class="bg-btn" onclick="switchBackground('dna')">DNA Helix</button>
+            <button class="bg-btn" onclick="switchBackground('spheres')">Sphere Network</button>
+        </div>
+    </div>
+    
+    <div class="info-panel" id="info-panel">
+        <h3>Particle Network</h3>
+        <p>Interactive particle network with dynamic connections. Move your mouse to attract particles and watch the network adapt in real-time.</p>
+    </div>
+    
+    <script src="{{ url_for('static', filename='particles.js') }}"></script>
+    <script src="{{ url_for('static', filename='3d-cubes.js') }}"></script>
+    <script src="{{ url_for('static', filename='3d-waves.js') }}"></script>
+    <script src="{{ url_for('static', filename='3d-geometry.js') }}"></script>
+    <script src="{{ url_for('static', filename='3d-dna.js') }}"></script>
+    <script src="{{ url_for('static', filename='3d-spheres.js') }}"></script>
+    
+
+    
+    <script>
+        const backgroundInfo = {
+            particles: {
+                title: "Particle Network",
+                description: "Connected particles that respond to mouse movement with smooth animations and dynamic connections."
+            },
+            cubes: {
+                title: "Floating Cubes",
+                description: "3D cubes floating in space with perspective projection and mouse interaction effects."
+            },
+            waves: {
+                title: "3D Waves",
+                description: "Animated wave grid with 3D depth and interactive mouse distortion effects."
+            },
+            geometry: {
+                title: "Geometric Shapes",
+                description: "Various 3D geometric shapes (tetrahedrons, cubes, pyramids) rotating in 3D space."
+            },
+            dna: {
+                title: "DNA Helix",
+                description: "Multiple DNA double helix structures rotating with connected base pairs and smooth animations."
+            },
+            spheres: {
+                title: "Sphere Network",
+                description: "Interactive 3D spheres with dynamic connections. Move your mouse to attract the spheres and watch the network adapt in real-time."
+            }
+        };
+        
+        function switchBackground(type) {
+            // Hide all canvases
+            document.querySelectorAll('.demo-canvas').forEach(canvas => {
+                canvas.style.display = 'none';
+            });
+            
+            // Show selected canvas
+            const canvas = document.getElementById(type + '-canvas');
+            if (canvas) {
+                canvas.style.display = 'block';
+            }
+            
+            // Update active button
+            document.querySelectorAll('.bg-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update info panel
+            const info = backgroundInfo[type];
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.innerHTML = `
+                <h3>${info.title}</h3>
+                <p>${info.description}</p>
+            `;
+        }
+        
+        // Add some interactive text effects
+        document.addEventListener('mousemove', (e) => {
+            const title = document.querySelector('.demo-title');
+            const rect = title.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const deltaX = (e.clientX - centerX) / 50;
+            const deltaY = (e.clientY - centerY) / 50;
+            
+            title.style.textShadow = `
+                ${deltaX}px ${deltaY}px 20px rgba(59, 130, 246, 0.8),
+                ${-deltaX}px ${-deltaY}px 20px rgba(147, 51, 234, 0.8)
+            `;
+        });
+    </script>
+</body>
+</html>

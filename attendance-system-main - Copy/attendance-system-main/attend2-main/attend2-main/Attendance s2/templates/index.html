@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="hero-section gradient-bg">
+    <div class="hero-content">
+        <div class="hero-text">
+            <h1 class="text-reveal">Smart Attendance Management</h1>
+            <p class="stagger-item">Revolutionize attendance tracking with advanced face recognition technology. Secure, efficient, and user-friendly system for educational institutions.</p>
+            <div class="hero-buttons">
+                {% if not session.user_id %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-glow hover-lift stagger-item" onclick="createRippleEffect(event)">
+                        <i class="fas fa-sign-in-alt"></i> Get Started
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-secondary hover-lift stagger-item" onclick="createRippleEffect(event)">
+                        <i class="fas fa-user-plus"></i> Register as Teacher
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-glow hover-lift stagger-item" onclick="createRippleEffect(event)">
+                        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="feature-card animated-card glass card-3d">
+                <div class="morphing-shape"></div>
+                <i class="fas fa-camera feature-icon breathing"></i>
+                <h3>Face Recognition</h3>
+                <p>Advanced AI-powered face recognition for accurate attendance tracking</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="features-section">
+    <div class="container">
+        <h2>Key Features</h2>
+        <div class="features-grid">
+            <div class="feature-item stagger-item hover-lift animated-card">
+                <div class="feature-icon-wrapper breathing">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <h3>Student Enrollment</h3>
+                <p>Easy photo upload or live capture for student registration with facial recognition</p>
+            </div>
+            <div class="feature-item stagger-item hover-lift animated-card">
+                <div class="feature-icon-wrapper breathing">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Secure Authentication</h3>
+                <p>Role-based access control with admin verification for teachers</p>
+            </div>
+            <div class="feature-item stagger-item hover-lift animated-card">
+                <div class="feature-icon-wrapper breathing">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h3>Real-time Tracking</h3>
+                <p>Instant attendance marking with comprehensive reporting</p>
+            </div>
+            <div class="feature-item stagger-item hover-lift animated-card">
+                <div class="feature-icon-wrapper breathing">
+                    <i class="fas fa-database"></i>
+                </div>
+                <h3>Secure Storage</h3>
+                <p>Privacy-focused facial data storage with encryption</p>
+            </div>
+            <div class="feature-item stagger-item hover-lift animated-card">
+                <div class="feature-icon-wrapper breathing">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <h3>Email Notifications</h3>
+                <p>Automated verification requests and system notifications</p>
+            </div>
+            <div class="feature-item stagger-item hover-lift animated-card">
+                <div class="feature-icon-wrapper breathing">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3>Responsive Design</h3>
+                <p>Works seamlessly across all devices and screen sizes</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="stats-section">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">99.9%</div>
+                <div class="stat-label">Accuracy Rate</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">&lt;2s</div>
+                <div class="stat-label">Recognition Time</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Privacy Protected</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">System Availability</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
